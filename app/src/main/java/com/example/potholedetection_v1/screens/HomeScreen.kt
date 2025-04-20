@@ -14,9 +14,12 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
+import android.content.Intent
+import android.os.Build
 import com.example.potholedetection_v1.PotholeViewModel
 import com.example.potholedetection_v1.data.SensorData
 import com.example.potholedetection_v1.navigation.AppRoutes
+import com.example.potholedetection_v1.service.PotholeDetectionService
 
 @Composable
 fun HomeScreen(
@@ -89,7 +92,7 @@ fun HomeScreen(
         Spacer(modifier = Modifier.height(16.dp))
 
         // Live Data display (only shown when detecting and not in background mode)
-        if (isDetecting && sensorData != null) {
+        if (isDetecting && !backgroundModeEnabled) {
             LiveSensorDataDisplay(sensorData)
         }
 
@@ -119,9 +122,28 @@ fun HomeScreen(
             onClick = {
                 isDetecting = !isDetecting
                 if (isDetecting) {
-                    viewModel.startDetection()
+                    // Start detection
+                    if (backgroundModeEnabled) {
+                        // Start as foreground service
+                        val serviceIntent = Intent(context, PotholeDetectionService::class.java)
+                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                            context.startForegroundService(serviceIntent)
+                        } else {
+                            context.startService(serviceIntent)
+                        }
+                    } else {
+                        // Start in-app detection
+                        viewModel.startDetection()
+                    }
                 } else {
-                    viewModel.stopDetection()
+                    // Stop detection
+                    if (backgroundModeEnabled) {
+                        // Stop foreground service
+                        context.stopService(Intent(context, PotholeDetectionService::class.java))
+                    } else {
+                        // Stop in-app detection
+                        viewModel.stopDetection()
+                    }
                 }
             },
             modifier = Modifier
