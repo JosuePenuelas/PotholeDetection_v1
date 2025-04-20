@@ -6,6 +6,7 @@ import androidx.lifecycle.viewModelScope
 import com.example.potholedetection_v1.data.PotholeDetection
 import com.example.potholedetection_v1.data.SensorData
 import com.example.potholedetection_v1.data.Severity
+import com.example.potholedetection_v1.model.ThresholdBasedDetector  // Cambiado
 import com.example.potholedetection_v1.sensor.PotholeSensorManager
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -13,16 +14,18 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import java.util.Date
 import java.util.UUID
+import kotlin.math.abs
+import kotlin.math.pow
+import kotlin.math.sqrt
 
-/**
- * ViewModel responsible for handling pothole detection data and operations
- */
 class PotholeViewModel(application: Application) : AndroidViewModel(application) {
-
-    // Sensor manager for handling all sensor operations
+    // Gestor de sensores
     private val sensorManager = PotholeSensorManager(application.applicationContext)
 
-    // State flows for UI updates
+    // Modelo de detección de baches con el nuevo detector
+    private val detectionModel = ThresholdBasedDetector(application.applicationContext)
+
+    // Estado para mostrar en la UI
     private val _sensorData = MutableStateFlow<SensorData?>(null)
     val sensorData: StateFlow<SensorData?> = _sensorData.asStateFlow()
 
@@ -32,97 +35,137 @@ class PotholeViewModel(application: Application) : AndroidViewModel(application)
     private val _detections = MutableStateFlow<List<PotholeDetection>>(emptyList())
     val detections: StateFlow<List<PotholeDetection>> = _detections.asStateFlow()
 
-    // Repository would be injected here in a production app
-    // private val repository: PotholeRepository
+    // Estado de detección
+    private var isDetectionActive = false
+
+    // No es necesario inicializar el detector porque se carga automáticamente
 
     init {
-        // Collect sensor data
+        // Observar datos de sensores
         viewModelScope.launch {
             sensorManager.sensorData.collect { data ->
-                _sensorData.value = data
+                data?.let {
+                    _sensorData.value = it
+                    if (isDetectionActive) {
+                        processSensorData(it)
+                    }
+                }
             }
         }
+    }
 
-        // Observe detection events
-        sensorManager.detectionEvents.observeForever { event ->
-            // Increment detection count
-            _detectionCount.value += 1
-
-            // Create PotholeDetection object
-            val detection = PotholeDetection(
-                id = UUID.randomUUID().toString(),
-                latitude = event.latitude,
-                longitude = event.longitude,
-                timestamp = Date(event.timestamp),
-                severity = when (event.severity) {
-                    PotholeSensorManager.PotholeDetectionEvent.Severity.LOW -> Severity.LOW
-                    PotholeSensorManager.PotholeDetectionEvent.Severity.MEDIUM -> Severity.MEDIUM
-                    PotholeSensorManager.PotholeDetectionEvent.Severity.HIGH -> Severity.HIGH
-                },
-                // In a real app, you'd want to include the actual sensor data here
-                accelerationX = 0f,
-                accelerationY = 0f,
-                accelerationZ = 0f,
-                gyroscopeX = 0f,
-                gyroscopeY = 0f,
-                gyroscopeZ = 0f,
-                speed = _sensorData.value?.speed ?: 0f,
-                confidence = event.confidence
-            )
-
-            // Add to current list
-            val currentList = _detections.value.toMutableList()
-            currentList.add(detection)
-            _detections.value = currentList
-
-            // In a real app, save to repository
-            // viewModelScope.launch {
-            //    repository.insertDetection(detection)
-            // }
+    fun startDetection() {
+        if (!isDetectionActive) {
+            isDetectionActive = true
+            sensorManager.startDetection()
         }
     }
 
-    /**
-     * Start pothole detection
-     */
-    fun startDetection() {
-        sensorManager.startDetection()
-    }
-
-    /**
-     * Stop pothole detection
-     */
     fun stopDetection() {
-        sensorManager.stopDetection()
+        if (isDetectionActive) {
+            isDetectionActive = false
+            sensorManager.stopDetection()
+        }
     }
 
-    /**
-     * Set detection sensitivity
-     */
-    fun setSensitivity(sensitivity: Float) {
-        // Implement based on your detection algorithm
+    private fun processSensorData(data: SensorData) {
+        // Extraer características (mismo orden que en Python)
+        val features = floatArrayOf(
+            data.accelerometerX,
+            data.accelerometerY,
+            data.accelerometerZ,
+            data.gyroscopeX,
+            data.gyroscopeY,
+            data.gyroscopeZ,
+            data.speed,
+            calculateAccelMagnitude(data),
+            calculateGyroMagnitude(data),
+            calculateZAccelDeviation(data)
+        )
+
+        // Aumentar este valor para reducir la sensibilidad (ej: de 0.6f a 0.75f)
+        val detectionThreshold = 0.75f  // Era 0.6f, ahora es más exigente
+
+        // Predecir con el modelo
+        val confidence = detectionModel.detectPothole(features)
+
+        // Detectar bache si la confianza supera el umbral
+        if (confidence > detectionThreshold) { // Ajusta este umbral según sea necesario
+            // Crear detección
+            val pothole = PotholeDetection(
+                id = UUID.randomUUID().toString(),
+                latitude = data.latitude,
+                longitude = data.longitude,
+                timestamp = Date(),
+                severity = calculateSeverity(confidence),
+                accelerationX = data.accelerometerX,
+                accelerationY = data.accelerometerY,
+                accelerationZ = data.accelerometerZ,
+                gyroscopeX = data.gyroscopeX,
+                gyroscopeY = data.gyroscopeY,
+                gyroscopeZ = data.gyroscopeZ,
+                speed = data.speed,
+                confidence = confidence
+            )
+
+            // Incrementar contador
+            _detectionCount.value += 1
+
+            // Añadir a la lista de detecciones
+            val currentList = _detections.value.toMutableList()
+            currentList.add(pothole)
+            _detections.value = currentList
+        }
     }
 
-    /**
-     * Get detections within a date range
-     */
-    fun getDetectionsInRange(startDate: Date, endDate: Date) {
-        // In a real app, load from repository
-        // viewModelScope.launch {
-        //    val detections = repository.getDetectionsInRange(startDate, endDate)
-        //    _detections.value = detections
-        // }
+    private fun calculateAccelMagnitude(data: SensorData): Float {
+        return sqrt(
+            data.accelerometerX.pow(2) +
+                    data.accelerometerY.pow(2) +
+                    data.accelerometerZ.pow(2)
+        )
     }
 
-    /**
-     * Clear detection count
-     */
+    private fun calculateGyroMagnitude(data: SensorData): Float {
+        return sqrt(
+            data.gyroscopeX.pow(2) +
+                    data.gyroscopeY.pow(2) +
+                    data.gyroscopeZ.pow(2)
+        )
+    }
+
+    private fun calculateZAccelDeviation(data: SensorData): Float {
+        return abs(data.accelerometerZ - 1.0f)
+    }
+
+    private fun calculateSeverity(confidence: Float): Severity {
+        return when {
+            confidence > 0.85f -> Severity.HIGH
+            confidence > 0.7f -> Severity.MEDIUM
+            else -> Severity.LOW
+        }
+    }
+
+    fun getRecentDetections(limit: Int = 50) = _detections.value.take(limit)
+
+    fun exportDetections(): String {
+        val sb = StringBuilder()
+        sb.appendLine("timestamp,latitude,longitude,severity,confidence")
+
+        _detections.value.forEach { detection ->
+            sb.appendLine("${detection.timestamp.time},${detection.latitude}," +
+                    "${detection.longitude},${detection.severity},${detection.confidence}")
+        }
+
+        return sb.toString()
+    }
+
     fun clearDetectionCount() {
         _detectionCount.value = 0
     }
 
     override fun onCleared() {
-        // Clean up resources
+        stopDetection()
         sensorManager.cleanup()
         super.onCleared()
     }
