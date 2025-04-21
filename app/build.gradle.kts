@@ -2,6 +2,7 @@ plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
+    id("com.google.gms.google-services")
 }
 
 android {
@@ -57,6 +58,12 @@ dependencies {
     implementation("com.google.android.gms:play-services-location:21.0.1")
     //gson
     implementation("com.google.code.gson:gson:2.10.1")
+    //firebase
+    implementation(platform("com.google.firebase:firebase-bom:33.12.0"))
+    implementation("com.google.firebase:firebase-analytics")
+    implementation(libs.firebase.common.ktx)
+    implementation(libs.firebase.firestore.ktx)
+    //
     implementation(libs.litert)
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)

@@ -29,7 +29,7 @@ fun MapScreen(
 ) {
     val context = LocalContext.current
     // Recolectar datos de detecciones
-    val detections by viewModel.detections.collectAsState()
+    val detections by viewModel.detections.collectAsState(initial = emptyList())
 
     // Estado para gestionar errores
     var mapError by remember { mutableStateOf<String?>(null) }

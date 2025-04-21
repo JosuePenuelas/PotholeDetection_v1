@@ -1,12 +1,14 @@
 package com.example.potholedetection_v1
 
 import android.app.Application
+import android.content.Context
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.potholedetection_v1.data.PotholeDetection
 import com.example.potholedetection_v1.data.SensorData
 import com.example.potholedetection_v1.data.Severity
 import com.example.potholedetection_v1.model.ThresholdBasedDetector  // Cambiado
+import com.example.potholedetection_v1.repository.FirebasePotholeRepository
 import com.example.potholedetection_v1.sensor.PotholeSensorManager
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -22,25 +24,31 @@ class PotholeViewModel(application: Application) : AndroidViewModel(application)
     // Gestor de sensores
     private val sensorManager = PotholeSensorManager(application.applicationContext)
 
-    // Modelo de detección de baches con el nuevo detector
+    // Modelo de detección de baches
     private val detectionModel = ThresholdBasedDetector(application.applicationContext)
 
-    // Estado para mostrar en la UI
+    // Repositorio de Firebase
+    private val repository = FirebasePotholeRepository()
+
+    // Estados para la UI
     private val _sensorData = MutableStateFlow<SensorData?>(null)
     val sensorData: StateFlow<SensorData?> = _sensorData.asStateFlow()
 
     private val _detectionCount = MutableStateFlow(0)
     val detectionCount: StateFlow<Int> = _detectionCount.asStateFlow()
 
-    private val _detections = MutableStateFlow<List<PotholeDetection>>(emptyList())
-    val detections: StateFlow<List<PotholeDetection>> = _detections.asStateFlow()
+    // Observar detecciones desde Firebase
+    val detections = repository.potholes
 
     // Estado de detección
     private var isDetectionActive = false
-
-    // No es necesario inicializar el detector porque se carga automáticamente
+    private var detectionSensitivity = 0.7f // Ajustado para ser menos sensible
 
     init {
+        // Inicializar con preferencias guardadas
+        val prefs = application.getSharedPreferences("pothole_prefs", Context.MODE_PRIVATE)
+        detectionSensitivity = prefs.getFloat("detection_sensitivity", 0.7f)
+
         // Observar datos de sensores
         viewModelScope.launch {
             sensorManager.sensorData.collect { data ->
@@ -69,7 +77,7 @@ class PotholeViewModel(application: Application) : AndroidViewModel(application)
     }
 
     private fun processSensorData(data: SensorData) {
-        // Extraer características (mismo orden que en Python)
+        // Extraer características
         val features = floatArrayOf(
             data.accelerometerX,
             data.accelerometerY,
@@ -83,14 +91,11 @@ class PotholeViewModel(application: Application) : AndroidViewModel(application)
             calculateZAccelDeviation(data)
         )
 
-        // Aumentar este valor para reducir la sensibilidad (ej: de 0.6f a 0.75f)
-        val detectionThreshold = 0.75f  // Era 0.6f, ahora es más exigente
-
         // Predecir con el modelo
         val confidence = detectionModel.detectPothole(features)
 
         // Detectar bache si la confianza supera el umbral
-        if (confidence > detectionThreshold) { // Ajusta este umbral según sea necesario
+        if (confidence > detectionSensitivity) {
             // Crear detección
             val pothole = PotholeDetection(
                 id = UUID.randomUUID().toString(),
@@ -105,16 +110,17 @@ class PotholeViewModel(application: Application) : AndroidViewModel(application)
                 gyroscopeY = data.gyroscopeY,
                 gyroscopeZ = data.gyroscopeZ,
                 speed = data.speed,
-                confidence = confidence
+                confidence = confidence,
+                isSynced = false
             )
 
             // Incrementar contador
             _detectionCount.value += 1
 
-            // Añadir a la lista de detecciones
-            val currentList = _detections.value.toMutableList()
-            currentList.add(pothole)
-            _detections.value = currentList
+            // Guardar en Firebase
+            viewModelScope.launch {
+                repository.savePotholeDetection(pothole)
+            }
         }
     }
 
@@ -146,23 +152,14 @@ class PotholeViewModel(application: Application) : AndroidViewModel(application)
         }
     }
 
-    fun getRecentDetections(limit: Int = 50) = _detections.value.take(limit)
-
-    fun exportDetections(): String {
-        val sb = StringBuilder()
-        sb.appendLine("timestamp,latitude,longitude,severity,confidence")
-
-        _detections.value.forEach { detection ->
-            sb.appendLine("${detection.timestamp.time},${detection.latitude}," +
-                    "${detection.longitude},${detection.severity},${detection.confidence}")
-        }
-
-        return sb.toString()
+    fun setDetectionSensitivity(value: Float) {
+        detectionSensitivity = value
+        // Guardar en SharedPreferences
+        val prefs = getApplication<Application>().getSharedPreferences("pothole_prefs", Context.MODE_PRIVATE)
+        prefs.edit().putFloat("detection_sensitivity", value).apply()
     }
 
-    fun clearDetectionCount() {
-        _detectionCount.value = 0
-    }
+    fun getDetectionSensitivity() = detectionSensitivity
 
     override fun onCleared() {
         stopDetection()

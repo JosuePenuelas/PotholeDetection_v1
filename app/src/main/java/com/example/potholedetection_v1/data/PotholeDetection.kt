@@ -1,32 +1,26 @@
+// data/PotholeDetection.kt
 package com.example.potholedetection_v1.data
 
 import java.util.Date
 
-/**
- * Data class representing a pothole detection event
- */
+// No-arg constructor necesario para Firestore
 data class PotholeDetection(
-    val id: String,                // Unique identifier for the detection
-    val latitude: Double,          // GPS latitude
-    val longitude: Double,         // GPS longitude
-    val timestamp: Date,           // When the pothole was detected
-    val severity: Severity,        // Calculated severity of the pothole
-    val accelerationX: Float,      // Raw accelerometer data
-    val accelerationY: Float,
-    val accelerationZ: Float,
-    val gyroscopeX: Float,         // Raw gyroscope data
-    val gyroscopeY: Float,
-    val gyroscopeZ: Float,
-    val speed: Float,              // Vehicle speed at detection time (km/h)
-    val confidence: Float,         // Detection confidence (0-1)
-    val isSynced: Boolean = false  // Whether the detection has been synced to the server
+    val id: String = "",
+    val latitude: Double = 0.0,
+    val longitude: Double = 0.0,
+    val timestamp: Date = Date(),
+    val severity: Severity = Severity.LOW,
+    val accelerationX: Float = 0f,
+    val accelerationY: Float = 0f,
+    val accelerationZ: Float = 0f,
+    val gyroscopeX: Float = 0f,
+    val gyroscopeY: Float = 0f,
+    val gyroscopeZ: Float = 0f,
+    val speed: Float = 0f,
+    val confidence: Float = 0f,
+    val isSynced: Boolean = false
 )
 
-/**
- * Enum representing pothole severity levels
- */
 enum class Severity {
-    LOW,
-    MEDIUM,
-    HIGH
+    LOW, MEDIUM, HIGH
 }
