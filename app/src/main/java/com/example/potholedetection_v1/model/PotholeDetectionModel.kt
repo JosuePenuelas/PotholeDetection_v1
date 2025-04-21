@@ -85,10 +85,28 @@ class PotholeDetectionModel(private val context: Context) {
 
             // Obtener resultado
             outputBuffer.rewind()
-            val confidence = outputBuffer.float
-            Log.d(TAG, "Predicción TFLite: $confidence")
+            val rawConfidence = outputBuffer.float
 
-            return confidence
+            // ESCALAR la confianza:
+            // Observamos que incluso valores de 0.24 son significativos para este modelo
+            // Escalar valores > 0.1 a un rango útil
+            val scaledConfidence = if (rawConfidence > 0.1f) {
+                // Escalar valores de 0.1-0.3 a 0.7-0.9
+                0.7f + ((rawConfidence - 0.1f) / 0.2f) * 0.2f
+            } else if (rawConfidence > 0.01f) {
+                // Valores entre 0.01 y 0.1 mapean a 0.5-0.7
+                0.5f + ((rawConfidence - 0.01f) / 0.09f) * 0.2f
+            } else {
+                // Valores muy bajos se mantienen bajos
+                rawConfidence * 10f
+            }
+
+            // Limitar al rango 0-1
+            val finalConfidence = minOf(scaledConfidence, 1.0f)
+
+            Log.d(TAG, "Predicción TFLite: $rawConfidence, Escalada: $finalConfidence")
+
+            return finalConfidence
         } catch (e: Exception) {
             Log.e(TAG, "Error al ejecutar predicción TFLite", e)
             return predictWithThresholds(features)

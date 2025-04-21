@@ -7,6 +7,7 @@ import androidx.lifecycle.viewModelScope
 import com.example.potholedetection_v1.data.PotholeDetection
 import com.example.potholedetection_v1.data.SensorData
 import com.example.potholedetection_v1.data.Severity
+import com.example.potholedetection_v1.model.PotholeDetectionModel
 import com.example.potholedetection_v1.model.ThresholdBasedDetector  // Cambiado
 import com.example.potholedetection_v1.repository.FirebasePotholeRepository
 import com.example.potholedetection_v1.sensor.PotholeSensorManager
@@ -25,7 +26,7 @@ class PotholeViewModel(application: Application) : AndroidViewModel(application)
     private val sensorManager = PotholeSensorManager(application.applicationContext)
 
     // Modelo de detección de baches
-    private val detectionModel = ThresholdBasedDetector(application.applicationContext)
+    private val detectionModel = PotholeDetectionModel(application.applicationContext)
 
     // Repositorio de Firebase
     private val repository = FirebasePotholeRepository()
@@ -92,7 +93,7 @@ class PotholeViewModel(application: Application) : AndroidViewModel(application)
         )
 
         // Predecir con el modelo
-        val confidence = detectionModel.detectPothole(features)
+        val confidence = detectionModel.predict(features)
 
         // Detectar bache si la confianza supera el umbral
         if (confidence > detectionSensitivity) {
