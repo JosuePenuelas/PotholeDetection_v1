@@ -43,12 +43,12 @@ class PotholeViewModel(application: Application) : AndroidViewModel(application)
 
     // Estado de detección
     private var isDetectionActive = false
-    private var detectionSensitivity = 0.7f // Ajustado para ser menos sensible
+    private var detectionSensitivity = 0.6f // Ajustado para ser menos sensible
 
     init {
         // Inicializar con preferencias guardadas
         val prefs = application.getSharedPreferences("pothole_prefs", Context.MODE_PRIVATE)
-        detectionSensitivity = prefs.getFloat("detection_sensitivity", 0.7f)
+        detectionSensitivity = prefs.getFloat("detection_sensitivity", 0.6f)
 
         // Observar datos de sensores
         viewModelScope.launch {

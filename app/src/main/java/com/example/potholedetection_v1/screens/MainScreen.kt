@@ -16,6 +16,8 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.compose.ui.text.font.FontWeight
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.potholedetection_v1.PotholeViewModel
 import com.example.potholedetection_v1.navigation.AppRoutes
 import com.example.potholedetection_v1.navigation.DrawerContent
 import com.example.potholedetection_v1.navigation.DrawerItem
@@ -27,6 +29,9 @@ fun MainScreen() {
     val navController = rememberNavController()
     val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
     val scope = rememberCoroutineScope()
+
+    // Crear un ViewModel compartido
+    val viewModel: PotholeViewModel = viewModel()
 
     val context = LocalContext.current
 
@@ -152,16 +157,16 @@ fun MainScreen() {
                 modifier = Modifier.padding(paddingValues)
             ) {
                 composable(AppRoutes.MAIN) {
-                    HomeScreen(navController)
+                    HomeScreen(navController, viewModel)
                 }
                 composable(AppRoutes.MAP) {
-                    MapScreen()
+                    MapScreen(viewModel)
                 }
                 composable(AppRoutes.HISTORY) {
                     HistoryScreen()
                 }
                 composable(AppRoutes.SETTINGS) {
-                    SettingsScreen()
+                    SettingsScreen(viewModel)
                 }
                 composable(AppRoutes.EXPORT) {
                     ExportDataScreen()

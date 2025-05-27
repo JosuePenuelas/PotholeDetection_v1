@@ -8,13 +8,33 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.potholedetection_v1.PotholeViewModel
+import kotlinx.coroutines.delay
 
 @Composable
-fun SettingsScreen() {
-    var sensitivity by remember { mutableStateOf(0.7f) }
+fun SettingsScreen(viewModel: PotholeViewModel = viewModel()) {
+    var sensitivity by remember { mutableStateOf(viewModel.getDetectionSensitivity()) }
     var backgroundDetection by remember { mutableStateOf(true) }
     var darkMode by remember { mutableStateOf(false) }
     var saveLocation by remember { mutableStateOf(true) }
+
+    // Variable para controlar si los cambios han sido guardados
+    var settingsSaved by remember { mutableStateOf(false) }
+
+    // Efecto para mostrar mensaje de confirmación temporalmente
+    LaunchedEffect(settingsSaved) {
+        if (settingsSaved) {
+            delay(2000) // Mostrar mensaje por 2 segundos
+            settingsSaved = false
+        }
+    }
+
 
     Column(
         modifier = Modifier
@@ -61,6 +81,13 @@ fun SettingsScreen() {
             Text(text = "High", fontSize = 12.sp)
         }
 
+        // Mostrar el valor actual de sensibilidad
+        Text(
+            text = "Current value: ${String.format("%.2f", sensitivity)}",
+            fontSize = 12.sp,
+            modifier = Modifier.padding(top = 4.dp, start = 8.dp)
+        )
+
         Divider(modifier = Modifier.padding(vertical = 16.dp))
 
         // Background Detection
@@ -89,9 +116,20 @@ fun SettingsScreen() {
 
         Divider(modifier = Modifier.padding(vertical = 16.dp))
 
+        if (settingsSaved) {
+            Text(
+                text = "Settings saved successfully!",
+                color = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.padding(bottom = 8.dp)
+            )
+        }
+
         // Button to save settings
         Button(
-            onClick = { /* Save settings */ },
+            onClick = {
+                viewModel.setDetectionSensitivity(sensitivity)
+                settingsSaved = true
+            },
             modifier = Modifier.align(Alignment.End)
         ) {
             Text(text = "Save Settings")
