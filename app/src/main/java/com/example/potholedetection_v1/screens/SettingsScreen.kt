@@ -1,6 +1,8 @@
 package com.example.potholedetection_v1.screens
 
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -27,6 +29,10 @@ fun SettingsScreen(viewModel: PotholeViewModel = viewModel()) {
     // Variable para controlar si los cambios han sido guardados
     var settingsSaved by remember { mutableStateOf(false) }
 
+    // ESTADOS PARA USUARIO
+    var userName by remember { mutableStateOf(viewModel.getUserName()) }
+    var showUserDialog by remember { mutableStateOf(false) }
+
     // Efecto para mostrar mensaje de confirmación temporalmente
     LaunchedEffect(settingsSaved) {
         if (settingsSaved) {
@@ -35,11 +41,13 @@ fun SettingsScreen(viewModel: PotholeViewModel = viewModel()) {
         }
     }
 
+    val scrollState = rememberScrollState()
 
     Column(
         modifier = Modifier
             .fillMaxSize()
             .padding(16.dp)
+            .verticalScroll(scrollState)
     ) {
         Text(
             text = "Settings",
@@ -47,6 +55,62 @@ fun SettingsScreen(viewModel: PotholeViewModel = viewModel()) {
             fontWeight = FontWeight.Bold,
             modifier = Modifier.padding(bottom = 16.dp)
         )
+
+        // NUEVA SECCIÓN: Información del Usuario
+        Card(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(vertical = 8.dp)
+        ) {
+            Column(
+                modifier = Modifier.padding(16.dp)
+            ) {
+                Text(
+                    text = "User Information",
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 16.sp,
+                    modifier = Modifier.padding(bottom = 8.dp)
+                )
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            text = "Display Name",
+                            fontWeight = FontWeight.Medium
+                        )
+                        Text(
+                            text = userName,
+                            fontSize = 14.sp,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+
+                    TextButton(onClick = { showUserDialog = true }) {
+                        Text("Change")
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(8.dp))
+
+                Text(
+                    text = "User ID: ${viewModel.getUserId().take(12)}...",
+                    fontSize = 12.sp,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+
+                Text(
+                    text = "Device: ${viewModel.getDeviceInfo()}",
+                    fontSize = 12.sp,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+        }
+
+        Divider(modifier = Modifier.padding(vertical = 16.dp))
 
         // Detection Sensitivity
         Text(
@@ -134,6 +198,42 @@ fun SettingsScreen(viewModel: PotholeViewModel = viewModel()) {
         ) {
             Text(text = "Save Settings")
         }
+    }
+
+// DIÁLOGO PARA CAMBIAR NOMBRE DE USUARIO
+    if (showUserDialog) {
+        var newUserName by remember { mutableStateOf(userName) }
+
+        AlertDialog(
+            onDismissRequest = { showUserDialog = false },
+            title = { Text("Change Display Name") },
+            text = {
+                OutlinedTextField(
+                    value = newUserName,
+                    onValueChange = { newUserName = it },
+                    label = { Text("Display Name") },
+                    singleLine = true
+                )
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        if (newUserName.isNotBlank()) {
+                            userName = newUserName
+                            viewModel.setUserName(newUserName)
+                            showUserDialog = false
+                        }
+                    }
+                ) {
+                    Text("Save")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showUserDialog = false }) {
+                    Text("Cancel")
+                }
+            }
+        )
     }
 }
 

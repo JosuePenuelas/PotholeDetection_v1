@@ -188,7 +188,7 @@ fun HistoryItem(
                 .padding(16.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            // Indicador de severidad
+            // Indicador de severidad (código existente)
             Box(
                 modifier = Modifier
                     .size(16.dp)
@@ -207,7 +207,7 @@ fun HistoryItem(
                     .weight(1f)
                     .padding(start = 16.dp)
             ) {
-                // Ubicación (coordenadas formateadas)
+                // Ubicación
                 Text(
                     text = "${String.format("%.6f", detection.latitude)}, ${String.format("%.6f", detection.longitude)}",
                     fontWeight = FontWeight.Bold
@@ -220,7 +220,15 @@ fun HistoryItem(
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
 
-                // Información adicional
+                // NUEVA LÍNEA: Información del usuario
+                Text(
+                    text = "Detected by: ${detection.userName}",
+                    fontSize = 12.sp,
+                    color = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.padding(top = 2.dp)
+                )
+
+                // Información adicional (código existente)
                 Row(
                     modifier = Modifier.padding(top = 4.dp)
                 ) {
@@ -238,8 +246,17 @@ fun HistoryItem(
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
+
+                // NUEVA LÍNEA: Información del dispositivo
+                Text(
+                    text = "Device: ${detection.deviceModel}",
+                    fontSize = 10.sp,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(top = 2.dp)
+                )
             }
 
+            // Columna de severidad (código existente)
             Column(
                 horizontalAlignment = Alignment.End
             ) {
@@ -252,20 +269,6 @@ fun HistoryItem(
                     text = detection.severity.name,
                     fontWeight = FontWeight.Bold
                 )
-
-                // Botón de eliminar (opcional)
-                /*
-                IconButton(
-                    onClick = onDeleteClick,
-                    modifier = Modifier.size(24.dp)
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Delete,
-                        contentDescription = "Delete",
-                        tint = MaterialTheme.colorScheme.error
-                    )
-                }
-                */
             }
         }
     }

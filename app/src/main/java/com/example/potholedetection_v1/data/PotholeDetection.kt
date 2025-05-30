@@ -18,7 +18,13 @@ data class PotholeDetection(
     val gyroscopeZ: Float = 0f,
     val speed: Float = 0f,
     val confidence: Float = 0f,
-    val isSynced: Boolean = false
+    val isSynced: Boolean = false,
+
+    // NUEVOS CAMPOS PARA IDENTIFICAR AL USUARIO
+    val userId: String = "",
+    val userName: String = "",
+    val deviceModel: String = "",
+    val deviceId: String = ""
 )
 
 enum class Severity {

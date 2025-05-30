@@ -283,8 +283,8 @@ private suspend fun exportToCSV(context: Context, detections: List<PotholeDetect
         val file = File(context.getExternalFilesDir(null), fileName)
 
         FileWriter(file).use { writer ->
-            // Escribir encabezados
-            writer.append("ID,Timestamp,Latitude,Longitude,Severity,Confidence,Speed_kmh,AccelX,AccelY,AccelZ,GyroX,GyroY,GyroZ,IsSynced\n")
+            // ENCABEZADOS ACTUALIZADOS
+            writer.append("ID,Timestamp,Latitude,Longitude,Severity,Confidence,Speed_kmh,AccelX,AccelY,AccelZ,GyroX,GyroY,GyroZ,UserID,UserName,DeviceModel,DeviceID,IsSynced\n")
 
             // Escribir datos
             detections.forEach { detection ->
@@ -294,20 +294,23 @@ private suspend fun exportToCSV(context: Context, detections: List<PotholeDetect
                 writer.append("${detection.longitude},")
                 writer.append("${detection.severity},")
                 writer.append("${detection.confidence},")
-                writer.append("${detection.speed * 3.6f},") // Convertir m/s a km/h
+                writer.append("${detection.speed * 3.6f},")
                 writer.append("${detection.accelerationX},")
                 writer.append("${detection.accelerationY},")
                 writer.append("${detection.accelerationZ},")
                 writer.append("${detection.gyroscopeX},")
                 writer.append("${detection.gyroscopeY},")
                 writer.append("${detection.gyroscopeZ},")
+                // NUEVAS COLUMNAS
+                writer.append("${detection.userId},")
+                writer.append("${detection.userName},")
+                writer.append("${detection.deviceModel},")
+                writer.append("${detection.deviceId},")
                 writer.append("${detection.isSynced}\n")
             }
         }
 
-        // Compartir el archivo
         shareFile(context, file, "text/csv")
-
         "CSV exported successfully: $fileName"
     }
 }

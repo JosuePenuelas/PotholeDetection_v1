@@ -11,6 +11,7 @@ import com.example.potholedetection_v1.model.PotholeDetectionModel
 import com.example.potholedetection_v1.model.ThresholdBasedDetector  // Cambiado
 import com.example.potholedetection_v1.repository.FirebasePotholeRepository
 import com.example.potholedetection_v1.sensor.PotholeSensorManager
+import com.example.potholedetection_v1.utils.UserManager
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -30,6 +31,9 @@ class PotholeViewModel(application: Application) : AndroidViewModel(application)
 
     // Repositorio de Firebase
     private val repository = FirebasePotholeRepository()
+
+    //user id
+    private val userManager = UserManager(application.applicationContext)
 
     // Estados para la UI
     private val _sensorData = MutableStateFlow<SensorData?>(null)
@@ -112,7 +116,13 @@ class PotholeViewModel(application: Application) : AndroidViewModel(application)
                 gyroscopeZ = data.gyroscopeZ,
                 speed = data.speed,
                 confidence = confidence,
-                isSynced = false
+                isSynced = false,
+
+                // NUEVOS CAMPOS
+                userId = userManager.getUserId(),
+                userName = userManager.getUserName(),
+                deviceModel = userManager.getDeviceModel(),
+                deviceId = userManager.getDeviceId().toString()
             )
 
             // Incrementar contador
@@ -124,6 +134,17 @@ class PotholeViewModel(application: Application) : AndroidViewModel(application)
             }
         }
     }
+
+    //métodos para gestionar usuario
+    fun getUserName(): String = userManager.getUserName()
+
+    fun setUserName(name: String) {
+        userManager.setUserName(name)
+    }
+
+    fun getUserId(): String = userManager.getUserId()
+
+    fun getDeviceInfo(): String = "${userManager.getDeviceModel()} (${userManager.getDeviceId()!!.take(8)})"
 
     private fun calculateAccelMagnitude(data: SensorData): Float {
         return sqrt(
