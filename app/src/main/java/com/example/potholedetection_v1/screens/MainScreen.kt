@@ -1,6 +1,7 @@
 package com.example.potholedetection_v1.screens
 
 import android.Manifest
+import android.content.Context
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -27,6 +28,10 @@ import kotlinx.coroutines.launch
 @Composable
 fun MainScreen() {
     val navController = rememberNavController()
+    val sharedPreferences = LocalContext.current.getSharedPreferences("PotholeApp", Context.MODE_PRIVATE)
+    val isFirstLaunch = remember {
+        sharedPreferences.getBoolean("first_launch", true)
+    }
     val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
     val scope = rememberCoroutineScope()
 
@@ -153,9 +158,14 @@ fun MainScreen() {
         ) { paddingValues ->
             NavHost(
                 navController = navController,
-                startDestination = AppRoutes.MAIN,
+                startDestination = if (isFirstLaunch) AppRoutes.WELCOME else AppRoutes.MAIN,
                 modifier = Modifier.padding(paddingValues)
             ) {
+                composable(AppRoutes.WELCOME) {
+                    WelcomeScreen(navController) {
+                        sharedPreferences.edit().putBoolean("first_launch", false).apply()
+                    }
+                }
                 composable(AppRoutes.MAIN) {
                     HomeScreen(navController, viewModel)
                 }

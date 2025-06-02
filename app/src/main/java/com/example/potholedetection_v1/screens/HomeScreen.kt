@@ -89,7 +89,7 @@ fun HomeScreen(
         Spacer(modifier = Modifier.height(16.dp))
 
         // Live Data display (only shown when detecting and not in background mode)
-        if (isDetecting && sensorData != null) {
+        if (isDetecting && sensorData != null && !backgroundModeEnabled) {
             LiveSensorDataDisplay(sensorData)
         }
 

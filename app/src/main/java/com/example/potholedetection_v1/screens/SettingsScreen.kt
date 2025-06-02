@@ -24,6 +24,7 @@ fun SettingsScreen(viewModel: PotholeViewModel = viewModel()) {
     var sensitivity by remember { mutableStateOf(viewModel.getDetectionSensitivity()) }
     var backgroundDetection by remember { mutableStateOf(true) }
     var darkMode by remember { mutableStateOf(false) }
+    var dynamicColor by remember { mutableStateOf(true) }
     var saveLocation by remember { mutableStateOf(true) }
 
     // Variable para controlar si los cambios han sido guardados
@@ -160,6 +161,14 @@ fun SettingsScreen(viewModel: PotholeViewModel = viewModel()) {
             description = "Detect potholes even when app is in background",
             checked = backgroundDetection,
             onCheckedChange = { backgroundDetection = it }
+        )
+
+        // DynamicColor Mode
+        SettingsSwitchItem(
+            title = "Dynamic Color",
+            description = "Use dynamic colors throughout the app",
+            checked = dynamicColor,
+            onCheckedChange = { dynamicColor = it }
         )
 
         // Dark Mode
